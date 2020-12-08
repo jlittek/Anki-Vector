@@ -1,3 +1,5 @@
+
+# Hallo
 from cv2 import cv2
 import numpy as np
 import anki_vector
@@ -10,7 +12,7 @@ def empty(a):
 
 #cv2.namedWindow("Trackbars")
 #cv2.resizeWindow("Trackbars", 640,240)
-#cv2.createTrackbar("H Min","Trackbars", 0, 179, empty)
+#cv2.createTrackbar("H Min","Trackbars", 0, 179, empty)q
 #cv2.createTrackbar("H Max","Trackbars", 179, 179, empty)
 #cv2.createTrackbar("S Min","Trackbars", 0, 255, empty)
 #cv2.createTrackbar("S Max","Trackbars", 255, 255, empty)
@@ -30,20 +32,27 @@ def getMiddleOfElement(img):
     found_cont=False
     for cnt in contours:
         area =cv2.contourArea(cnt)
+        peri = cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, 0.02*peri,True)
+        objCor = len(approx) #Anzahl der Ecken
+        print(objCor)
+        x, y, w, h = cv2.boundingRect(approx)
         #middle of contour
-        if area>1000:
+        #if area>1000: # erkennt den Ball in größerer Entfernung nicht, deshalb  nach Kreis suchen
+        if objCor > 7:
+            cv2.circle(img, center=(int(x+w/2), int(y+h/2)), radius=int((h)/2), color=(0, 255, 0), thickness=3)
             try:
                 M = cv2.moments(cnt)
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
-                cv2.circle(imgContour, (cX, cY), 7, (255, 255, 255), -1)
+                #cv2.circle(imgContour, (cX, cY), 7, (255, 255, 255), -1)
 
                 #print(cX)
                 #Umgedreht, weil kamera gespiegelt -> anscheindn 640x360
-                if cX<300:
+                if (x+w/2)<300:
                     print("rechts")
                     change_handler(1)
-                elif cX<400:
+                elif (x+w/2)<400:
                     print("mitte")
                     change_handler(2)
                 else:
@@ -66,9 +75,9 @@ def change_handler(direction):
     if(direction==2):
         robot.motors.set_wheel_motors(100,100)
     elif(direction==1):
-        robot.motors.set_wheel_motors(50,100)
+        robot.motors.set_wheel_motors(75,100)
     elif(direction==3):
-        robot.motors.set_wheel_motors(100,50)
+        robot.motors.set_wheel_motors(100,75)
 
 
 
@@ -76,7 +85,7 @@ robot=anki_vector.Robot()
 robot.connect()
 robot.camera.init_camera_feed()
 robot.behavior.set_lift_height(0.0)
-robot.behavior.set_head_angle(degrees(20))
+robot.behavior.set_head_angle(degrees(10))
 print("Start reading")
 print(robot.camera.latest_image.raw_image)
 
@@ -97,14 +106,20 @@ while True:
     s_max=255
     v_min=154
     v_max=255
-    lower=np.array([h_min,s_min,v_min])
-    upper=np.array([h_max,s_max,v_max])
+    #lower=np.array([h_min,s_min,v_min])
+    #upper=np.array([h_max,s_max,v_max])
+    lower = np.array([28, 124, 91]) 
+    upper = np.array([130, 215, 255])
+
     mask=cv2.inRange(imgHSV,lower,upper)
     imgContour=img.copy()
     cv2.imshow("Camera", imgContour)
+    cv2.imshow("Mask", mask)
+    
     if getMiddleOfElement(mask)==False:
         robot.motors.set_wheel_motors(0,0)
-
+    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
         robot.disconnect()
+
