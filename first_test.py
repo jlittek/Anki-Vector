@@ -1,5 +1,3 @@
-
-# Hallo
 from cv2 import cv2
 import numpy as np
 import anki_vector
@@ -37,17 +35,11 @@ def getMiddleOfElement(img):
         objCor = len(approx) #Anzahl der Ecken
         print(objCor)
         x, y, w, h = cv2.boundingRect(approx)
-        #middle of contour
         #if area>1000: # erkennt den Ball in größerer Entfernung nicht, deshalb  nach Kreis suchen
         if objCor > 7:
             cv2.circle(img, center=(int(x+w/2), int(y+h/2)), radius=int((h)/2), color=(0, 255, 0), thickness=3)
             try:
-                M = cv2.moments(cnt)
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                #cv2.circle(imgContour, (cX, cY), 7, (255, 255, 255), -1)
 
-                #print(cX)
                 #Umgedreht, weil kamera gespiegelt -> anscheindn 640x360
                 if (x+w/2)<300:
                     print("rechts")
