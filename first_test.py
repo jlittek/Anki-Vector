@@ -6,24 +6,12 @@ from anki_vector.util import distance_mm, speed_mmps, degrees
 def empty(a):
     pass
 
-#cap=cv2.VideoCapture(0)
-
-#cv2.namedWindow("Trackbars")
-#cv2.resizeWindow("Trackbars", 640,240)
-#cv2.createTrackbar("H Min","Trackbars", 0, 179, empty)q
-#cv2.createTrackbar("H Max","Trackbars", 179, 179, empty)
-#cv2.createTrackbar("S Min","Trackbars", 0, 255, empty)
-#cv2.createTrackbar("S Max","Trackbars", 255, 255, empty)
-#cv2.createTrackbar("V Min","Trackbars", 0, 255, empty)
-#cv2.createTrackbar("V Max","Trackbars", 255, 255, empty)
 def searching():
     #random rumfahren -> muss in einem Thread sein
     while True:
         #hier noch random zahlen
         robot.motors.set_wheel_motors(100,100)
         time.sleep(1)
-
-
 
 def getMiddleOfElement(img):
     contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -67,9 +55,9 @@ def change_handler(direction):
     if(direction==2):
         robot.motors.set_wheel_motors(100,100)
     elif(direction==1):
-        robot.motors.set_wheel_motors(75,100)
+        robot.motors.set_wheel_motors(50,100)
     elif(direction==3):
-        robot.motors.set_wheel_motors(100,75)
+        robot.motors.set_wheel_motors(100,50)
 
 
 
@@ -80,38 +68,41 @@ robot.behavior.set_lift_height(0.0)
 robot.behavior.set_head_angle(degrees(10))
 print("Start reading")
 print(robot.camera.latest_image.raw_image)
+# mit Würfel (=Tor) verbinden:
+robot.world.connect_cube()
+
 
 while True:
     img=np.array(robot.camera.latest_image.raw_image)
+    # imgBlur = cv2.GaussianBlur(bild, (7,7), 1)
     imgHSV=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-    #Calibration:
-    #h_min=cv2.getTrackbarPos("H Min","Trackbars")
-    #h_max=cv2.getTrackbarPos("H Max","Trackbars")
-    #s_min=cv2.getTrackbarPos("S Min","Trackbars")
-    #s_max=cv2.getTrackbarPos("S Max","Trackbars")
-    #v_min=cv2.getTrackbarPos("V Min","Trackbars")
-    #v_max=cv2.getTrackbarPos("V Max","Trackbars")
-    #Werte schon früher Calibriert für meinen Stift:
-    h_min=0
-    h_max=179
-    s_min=150
-    s_max=255
-    v_min=154
-    v_max=255
+    # h_min=0
+    # h_max=179
+    # s_min=150
+    # s_max=255
+    # v_min=154
+    # v_max=255
     #lower=np.array([h_min,s_min,v_min])
     #upper=np.array([h_max,s_max,v_max])
-    lower = np.array([28, 124, 91]) 
-    upper = np.array([130, 215, 255])
+    lower = np.array([73, 99, 138]) # Bild Roboter
+    upper = np.array([124, 216, 239])
 
     mask=cv2.inRange(imgHSV,lower,upper)
     imgContour=img.copy()
     cv2.imshow("Camera", imgContour)
     cv2.imshow("Mask", mask)
-    
+
+    # wenn nah an Objekt -> stoppen:
+    proximity_data = robot.proximity.last_sensor_reading
+    if proximity_data.distance.distance_mm < 100:
+        robot.motors.stop_all_motors()
+        continue
+
+
+   
     if getMiddleOfElement(mask)==False:
         robot.motors.set_wheel_motors(0,0)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
         robot.disconnect()
-
+        break
