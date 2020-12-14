@@ -11,7 +11,7 @@ def handle_object_observed(robot, event_type, event):
     for obj in robot.world.visible_custom_objects:
         print("Object observed")
         robot.Tor_pose = obj.pose
-        break
+        break # nach dem ersten direkt aufhören
 
 
 
@@ -27,8 +27,10 @@ while robot.Tor_pose == None:
     pass
 robot.events.unsubscribe(handle_object_observed, Events.object_observed)
 p = Pose(x=robot.Tor_pose.position.x-100, y=0, z=0, angle_z=Angle(degrees=0))
+# aufgeteilt nach x und y, sonst gibt es immer eine Fehlermeldung:
 success = robot.behavior.go_to_pose(p, relative_to_robot=True, num_retries=0)
 print(success)
+print(p)
 p = Pose(x=0, y=robot.Tor_pose.position.y, z=0, angle_z=Angle(degrees=0))
 success = robot.behavior.go_to_pose(p, relative_to_robot=True, num_retries=0)
 print(success)
