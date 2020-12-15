@@ -1,5 +1,6 @@
 import threading
 import time
+import anki_vector
 from random import randint
 
 def drive_for_search():
