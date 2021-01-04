@@ -15,12 +15,12 @@ robot.behavior.set_head_angle(degrees(0))
 
 cv2.namedWindow("TrackBars")
 cv2.resizeWindow("TrackBars", 640, 600)
-cv2.createTrackbar("Hue Min", "TrackBars", 0, 179, empty)
-cv2.createTrackbar("Hue Max", "TrackBars", 113, 179, empty)
-cv2.createTrackbar("Sat Min", "TrackBars", 99, 255, empty)
-cv2.createTrackbar("Sat Max", "TrackBars", 108, 255, empty)
-cv2.createTrackbar("Val Min", "TrackBars", 92, 255, empty)
-cv2.createTrackbar("Val Max", "TrackBars", 180, 255, empty)
+cv2.createTrackbar("Hue Min", "TrackBars", 10, 179, empty)
+cv2.createTrackbar("Hue Max", "TrackBars", 47, 179, empty)
+cv2.createTrackbar("Sat Min", "TrackBars", 66, 255, empty)
+cv2.createTrackbar("Sat Max", "TrackBars", 186, 255, empty)
+cv2.createTrackbar("Val Min", "TrackBars", 171, 255, empty)
+cv2.createTrackbar("Val Max", "TrackBars", 255, 255, empty)
 
 while True:
     
@@ -33,7 +33,7 @@ while True:
 
     bild = np.array(robot.camera.latest_image.raw_image)
     bildRGB = cv2.cvtColor(bild, cv2.COLOR_RGB2BGR)
-    bildBlur = cv2.GaussianBlur(bildRGB, (kernelsize,kernelsize), 1)
+    bildBlur = cv2.GaussianBlur(bildRGB, (3,3), 1)
     bildHSV = cv2.cvtColor(bildBlur, cv2.COLOR_BGR2HSV)
 
     print(h_min, h_max, s_min, s_max, v_min, v_max)

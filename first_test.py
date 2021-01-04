@@ -18,35 +18,18 @@ def getMiddleOfElement(img):
     found_cont=False
     for cnt in contours:
         area =cv2.contourArea(cnt)
+        print("area:", area)
         peri = cv2.arcLength(cnt, True)
         approx = cv2.approxPolyDP(cnt, 0.02*peri,True)
         objCor = len(approx) #Anzahl der Ecken
-        print(objCor)
         x, y, w, h = cv2.boundingRect(approx)
-        #if area>1000: # erkennt den Ball in größerer Entfernung nicht, deshalb  nach Kreis suchen
         if objCor > 7:
-            cv2.circle(img, center=(int(x+w/2), int(y+h/2)), radius=int((h)/2), color=(0, 255, 0), thickness=3)
-            try:
-
-                #Umgedreht, weil kamera gespiegelt -> anscheindn 640x360
-                if (x+w/2)<300:
-                    print("rechts")
-                    change_handler(1)
-                elif (x+w/2)<400:
-                    print("mitte")
-                    change_handler(2)
-                else:
-                    print("links")
-                    change_handler(3) 
-                return True
-                
-            except:
-                pass
-          
+            cv2.circle(bildRGB, center=(int(x+w/2), int(y+h/2)), radius=int((h)/2), color=(0, 255, 0), thickness=3)
+            return True, x+w/2, area
     print("not found")
-    return False
+    return False, 640/2, None
+   
         
-            
 def change_handler(direction):
     #Update desired drive direction
     #3-> rechts
@@ -55,9 +38,9 @@ def change_handler(direction):
     if(direction==2):
         robot.motors.set_wheel_motors(100,100)
     elif(direction==1):
-        robot.motors.set_wheel_motors(50,100)
+        robot.motors.set_wheel_motors(75,100)
     elif(direction==3):
-        robot.motors.set_wheel_motors(100,50)
+        robot.motors.set_wheel_motors(100,75)
 
 
 
@@ -68,40 +51,41 @@ robot.behavior.set_lift_height(0.0)
 robot.behavior.set_head_angle(degrees(10))
 print("Start reading")
 print(robot.camera.latest_image.raw_image)
-# mit Würfel (=Tor) verbinden:
-robot.world.connect_cube()
+
 
 
 while True:
     img=np.array(robot.camera.latest_image.raw_image)
-    # imgBlur = cv2.GaussianBlur(bild, (7,7), 1)
-    imgHSV=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-    # h_min=0
-    # h_max=179
-    # s_min=150
-    # s_max=255
-    # v_min=154
-    # v_max=255
-    #lower=np.array([h_min,s_min,v_min])
-    #upper=np.array([h_max,s_max,v_max])
-    lower = np.array([73, 99, 138]) # Bild Roboter
-    upper = np.array([124, 216, 239])
+
+    bildRGB = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    bildBlur = cv2.GaussianBlur(bildRGB, (3,3), 1)
+    bildHSV = cv2.cvtColor(bildBlur, cv2.COLOR_BGR2HSV)
+    imgHSV = bildHSV
+    lower = np.array([10, 66, 171])
+    upper = np.array([47, 186, 255])
 
     mask=cv2.inRange(imgHSV,lower,upper)
     imgContour=img.copy()
-    cv2.imshow("Camera", imgContour)
+
+
+    success, middle, area = getMiddleOfElement(mask)
+
+    cv2.imshow("Camera", bildRGB)
     cv2.imshow("Mask", mask)
 
-    # wenn nah an Objekt -> stoppen:
-    proximity_data = robot.proximity.last_sensor_reading
-    if proximity_data.distance.distance_mm < 100:
-        robot.motors.stop_all_motors()
-        continue
 
-
-   
-    if getMiddleOfElement(mask)==False:
-        robot.motors.set_wheel_motors(0,0)
+    if success==True:
+        if middle<250:
+            print("links")
+            change_handler(1)
+        elif middle>350:
+            print("rechts")
+            change_handler(3)
+        else:
+            print("mitte")
+            change_handler(1)
+    else: # not found -> drehen
+        robot.motors.set_wheel_motors(10,-10)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         robot.disconnect()

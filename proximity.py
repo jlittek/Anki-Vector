@@ -6,7 +6,7 @@ with anki_vector.Robot() as robot:
 	while True:
 		proximity_data = robot.proximity.last_sensor_reading
 		print('Proximity distance: {0}'.format(proximity_data.distance))
-		if proximity_data.distance.distance_mm < 40:
+		if proximity_data.distance.distance_mm < 100:
 			robot.motors.stop_all_motors()
 			
 	
