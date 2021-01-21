@@ -8,34 +8,22 @@ from cv2 import cv2
 from anki_vector.util import distance_mm, speed_mmps, degrees, Angle, Pose
 
 def drive_for_search(robot):
-	#Random hin und her fahren, drehen, ...
 	#überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
-	#->spielfeld recht klein? Nur drehen?
 	while True:
 		while robot.ball_not_found:
-			print("random drive")
+			print("random spin")
 			if randint(0,1)==0:
 				robot.motors.set_wheel_motors(20,-20)
 			else:
 				robot.motors.set_wheel_motors(-20,20)
 			time.sleep(randint(2,4))
-			#if randint(0,1)==0:
-				#fahren
-				#robot.motors.set_wheel_motors(100,100)
-			#else:
-				#drehen random ob links oder rechts
-				#if randint(0,1)==0:
-					#robot.motors.set_wheel_motors(70,150)
-				#else:
-					#robot.motors.set_wheel_motors(150,70)
-			#time.sleep(randint(1,2))
 
-def getMiddleOfElement(img, bildRGB):
+def getMiddleOfElement_circle(img, bildRGB):
     contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     found_cont=False
     for cnt in contours:
         area =cv2.contourArea(cnt)
-        if(area>10):
+        if(area>20):
             if(area>8000):
                 #robot.behavior.set_head_angle(degrees(-10))
                 #stelle um auf Abstandssensor um den zu sehen ob der Ball dran ist
@@ -51,29 +39,58 @@ def getMiddleOfElement(img, bildRGB):
                 return True, x+w/2, area
     return False, 640/2, None
 
+def getMiddleOfElement_area(img, bildRGB):
+	contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	found_cont=False
+	for cnt in contours:
+		area =cv2.contourArea(cnt)
+		#middle of contour
+		if area>20:
+			if area>20000:
+				#nahe am ball
+				proximity_data = robot.proximity.last_sensor_reading
+				if proximity_data.distance.distance_mm < 34:
+					print("BALLL")
+					return True, 640/2, None
+				pass
+			print(area)
+			try:
+				M = cv2.moments(cnt)
+				cX = int(M["m10"] / M["m00"])
+				cY = int(M["m01"] / M["m00"])
+				cv2.circle(bildRGB, (cX, cY), 7, (255, 255, 255), -1)
+				return True, cX, -1
+			except:
+				pass	
+	return False, 640/2, None
+
 def empty(a):
 	pass
 
 def change_direction(area, middle):
-    #print(area)
-    #Update desired drive direction 0<middle<640    
-    if area<40:
-        r=1
-        l=1
-    elif area>8000:
-        r=0.5
-        l=0.5
-    else:
-        l=-0.00006*area+1
-        r=-0.00006*area+1
-    if abs(320-middle)>250:
-        l=l*0.6
-        r=r*0.6
-    if middle>320:
-        l=1
-    else:
-        r=1
-    robot.motors.set_wheel_motors(170*l,170*r)
+	#print(area)
+	#Update desired drive direction 0<middle<640
+	if area==-1:
+		r=0.8
+		l=0.8
+	else: 
+		if area<40:
+			r=1
+			l=1
+		elif area>8000:
+			r=0.5
+			l=0.5
+		else:
+			l=-0.00006*area+1
+			r=-0.00006*area+1
+	if abs(320-middle)>250:
+		l=l*0.6
+		r=r*0.6
+	if middle>320:
+		l=1
+	else:
+		r=1
+	robot.motors.set_wheel_motors(170*l,170*r)
 
 def search_ball(robot):
 	print("searching ball")
@@ -88,11 +105,11 @@ def search_ball(robot):
 		lower = np.array([10, 66, 171])
 		upper = np.array([47, 186, 255])
 		#timwerte
-		lower = np.array([0, 120, 168])
-		upper = np.array([179, 255, 255])
+		lower = np.array([0, 116, 148])
+		upper = np.array([30, 229, 255])
 		mask=cv2.inRange(imgHSV,lower,upper)
 		imgContour=img.copy()
-		success, middle, area = getMiddleOfElement(mask, bildRGB)
+		success, middle, area = getMiddleOfElement_area(mask, bildRGB)
 		cv2.namedWindow("Camera")
 		cv2.imshow("Camera", bildRGB)
 		cv2.namedWindow("Mask")
@@ -101,8 +118,11 @@ def search_ball(robot):
 		#Ball found?:
 		if success==True:
 			robot.ball_not_found=False
-			change_direction(area, middle)
 			frames=0
+			if area==None:
+				pass
+			else:
+				change_direction(area, middle)
 		else: # not found
 			frames=frames+1
 			if(frames>15):
@@ -116,6 +136,8 @@ def search_ball(robot):
 
 def drive_to_goal():
 	print("drive_to_goal")
+	#zur torposition fahren
+	#evtl. ausschau halten nach den Markern
 	#zum Tor fahren
 
 def map(robot):
