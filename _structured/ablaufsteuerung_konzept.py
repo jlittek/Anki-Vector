@@ -51,18 +51,17 @@ def getMiddleOfElement_area(img, bildRGB):
 				proximity_data = robot.proximity.last_sensor_reading
 				if proximity_data.distance.distance_mm < 34:
 					print("BALLL")
-					return True, 640/2, None
-				pass
+					return True, 640/2, None, True
 			print(area)
 			try:
 				M = cv2.moments(cnt)
 				cX = int(M["m10"] / M["m00"])
 				cY = int(M["m01"] / M["m00"])
 				cv2.circle(bildRGB, (cX, cY), 7, (255, 255, 255), -1)
-				return True, cX, -1
+				return True, cX, -1, False
 			except:
 				pass	
-	return False, 640/2, None
+	return False, 640/2, None, False
 
 def empty(a):
 	pass
@@ -109,7 +108,7 @@ def search_ball(robot):
 		upper = np.array([30, 229, 255])
 		mask=cv2.inRange(imgHSV,lower,upper)
 		imgContour=img.copy()
-		success, middle, area = getMiddleOfElement_area(mask, bildRGB)
+		success, middle, area, goal = getMiddleOfElement_area(mask, bildRGB)
 		cv2.namedWindow("Camera")
 		cv2.imshow("Camera", bildRGB)
 		cv2.namedWindow("Mask")
@@ -119,6 +118,10 @@ def search_ball(robot):
 		if success==True:
 			robot.ball_not_found=False
 			frames=0
+			if goal==True:
+				#Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
+				drive_goal = threading.Thread(target=drive_to_goal, args=[robot])
+				drive_goal.start
 			if area==None:
 				pass
 			else:
@@ -132,13 +135,14 @@ def search_ball(robot):
 			robot.disconnect()
 			break
 
-	#if ball unter Kontrolle -> drive_to_goal()
-
-def drive_to_goal():
+def drive_to_goal(robot):
 	print("drive_to_goal")
-	#zur torposition fahren
-	#evtl. ausschau halten nach den Markern
-	#zum Tor fahren
+	if (robot.drivegoal==False):
+		robot.drivegoal==True
+		#11-> lieber etwas zu weit ins Tor als zu wenig fahren
+		pose = Pose(x=(160-11)*10, y=0, z=0, angle_z=anki_vector.util.Angle(degrees=0))
+		robot.behavior.go_to_pose(pose)
+		#evtl. ausschau halten nach den Markern
 
 def map(robot):
 	map_height=160*3
@@ -167,6 +171,7 @@ def initialize():
 	robot.behavior.set_head_angle(degrees(0))
 	robot.behavior.say_text("I'm ready!")
 	robot.ball_not_found=False
+	robot.drivegoal=False
 	return robot
 
 #starting robot
