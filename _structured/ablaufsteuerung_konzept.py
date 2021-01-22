@@ -44,9 +44,9 @@ def getMiddleOfElement_area(img, bildRGB):
 	found_cont=False
 	for cnt in contours:
 		area =cv2.contourArea(cnt)
-		#middle of contour
+		#WERTE ANPASSEN:
 		if area>20:
-			if area>20000:
+			if area>20000:	
 				#nahe am ball
 				proximity_data = robot.proximity.last_sensor_reading
 				if proximity_data.distance.distance_mm < 34:
@@ -128,8 +128,9 @@ def search_ball(robot):
 				change_direction(area, middle)
 		else: # not found
 			frames=frames+1
-			if(frames>15):
+			if(frames>10):
 				robot.ball_not_found=True
+				robot.drivegoal==False
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			robot.disconnect()
