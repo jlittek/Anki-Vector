@@ -7,6 +7,7 @@ from random import randint
 from cv2 import cv2
 from anki_vector.util import distance_mm, speed_mmps, degrees, Angle, Pose
 from anki_vector.events import Events
+import math
 
 def handle_object_observed(robot, event_type, event):
     # This will be called whenever an EvtObjectObserved is dispatched -
@@ -18,34 +19,12 @@ def handle_object_observed(robot, event_type, event):
         break # nach dem ersten direkt aufhören
 
 def drive_for_search(robot):
-	#überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
-	while True:
-		while robot.ball_not_found:
-			print("spin")
-			robot.motors.set_wheel_motors(20,-20)
-
-			time.sleep(randint(3,4))
-
-def getMiddleOfElement_circle(img, bildRGB):
-    contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    found_cont=False
-    for cnt in contours:
-        area =cv2.contourArea(cnt)
-        if(area>20):
-            if(area>8000):
-                #robot.behavior.set_head_angle(degrees(-10))
-                #stelle um auf Abstandssensor um den zu sehen ob der Ball dran ist
-                print("exit")
-                sys.exit()
-            #print("area:", area)
-            peri = cv2.arcLength(cnt, True)
-            approx = cv2.approxPolyDP(cnt, 0.02*peri,True)
-            objCor = len(approx) #Anzahl der Ecken
-            x, y, w, h = cv2.boundingRect(approx)
-            if objCor > 7:
-                cv2.circle(bildRGB, center=(int(x+w/2), int(y+h/2)), radius=int((h)/2), color=(0, 255, 0), thickness=3)
-                return True, x+w/2, area
-    return False, 640/2, None
+    #überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
+    while True:
+        while robot.ball_not_found:
+            robot.motors.set_wheel_motors(-10,10)
+            time.sleep(randint(2,4))
+            
 
 def getMiddleOfElement_area(img, bildRGB):
 	contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -54,47 +33,36 @@ def getMiddleOfElement_area(img, bildRGB):
 		area =cv2.contourArea(cnt)
 		#WERTE ANPASSEN:
 		if area>20:
-			if area>5500:
+			if area>3500:
 				print("BALLL")
-				return True, 640/2, None, True
+				return True, 640/2, area, True #Ball gefunden und nah dran
 			print(area)
 			try:
 				M = cv2.moments(cnt)
 				cX = int(M["m10"] / M["m00"])
 				cY = int(M["m01"] / M["m00"])
 				cv2.circle(bildRGB, (cX, cY), 7, (255, 255, 255), -1)
-				return True, cX, -1, False
+				return True, cX, area, False #Ball gefunden, aber noch nicht nah genug
 			except:
 				pass	
-	return False, 640/2, None, False
+	return False, 640/2, None, False #Ball nicht gefunden
 
 def empty(a):
 	pass
 
 def change_direction(area, middle):
-	#print(area)
-	#Update desired drive direction 0<middle<640
-	if area==-1:
-		r=0.8
-		l=0.8
-	else: 
-		if area<40:
-			r=1
-			l=1
-		elif area>8000:
-			r=0.5
-			l=0.5
-		else:
-			l=-0.00006*area+1
-			r=-0.00006*area+1
-	if abs(320-middle)>250:
-		l=l*0.6
-		r=r*0.6
-	if middle>320:
-		l=1
-	else:
-		r=1
-	robot.motors.set_wheel_motors(40*l,40*r)
+
+    d_adj = (abs(middle-320))/2
+    d = middle-320
+    print("d:", d)
+    a=20/area
+    g=60
+    r = g
+    l = (1-abs(d_adj)/320)*g
+    if d < 0: #Ball rechts
+        robot.motors.set_wheel_motors(l, r)
+    else:
+        robot.motors.set_wheel_motors(r, l)
     
 def search_ball(robot):
     print("searching ball")
@@ -120,45 +88,59 @@ def search_ball(robot):
         cv2.imshow("Mask", mask)
         #Ball found?:
         if success==True:
-            robot.behavior.set_lift_height(1.0)
             robot.ball_not_found=False
             frames=0
-            if goal==True:
-                robot.behavior.set_lift_height(0.0)
+            if robot.drivegoal==False:
+                robot.behavior.set_lift_height(1.0)
+            if goal==True and robot.drivegoal==False:
+                robot.behavior.set_lift_height(0.2)
                 robot.motors.stop_all_motors()
+                print("drive_to_goal")
+                robot.behavior.drive_straight(distance_mm(-150), speed_mmps(100))
+                print("I got the ball from my opponent.")
+                x = robot.goal_pose.position.x-robot.pose.position.x
+                y = robot.pose.position.y
+                print("x:", x)
+                print("y:", y)
+                distance_to_goal = math.sqrt(x*x+y*y)
+                angle_to_goal = np.rad2deg(np.arcsin(x/distance_to_goal))
+                print("alpha:", angle_to_goal)
+                if y > 0:
+                    robot.behavior.turn_in_place(degrees(-0.8*(90-angle_to_goal)), is_absolute=True)
+                else:
+                    robot.behavior.turn_in_place(degrees(0.8*(90-angle_to_goal)), is_absolute=True)
+                robot.motors.set_wheel_motors(80,80)
+                robot.drivegoal=True
                 #Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
-				drive_goal = threading.Thread(target=drive_to_goal, args=[robot])
-				drive_goal.start()
-            if area==None:
+                drive_goal = threading.Thread(target=drive_to_goal, args=[robot, x, y])
+                drive_goal.start()
+            if area==None:  # Diesen Fall gibt es nicht mehr
                 pass
-            else:
+            elif robot.drivegoal==False:
                 change_direction(area, middle)
         else: # not found
             frames=frames+1
-        if(frames>10):
-                robot.ball_not_found=True
-                robot.drivegoal==False
+        if(frames>5):
+            robot.drivegoal=False
+            robot.ball_not_found=True
         if cv2.waitKey(1) & 0xFF == ord('q'):
             robot.disconnect()
+            sys.exit()
             return False
 
-def drive_to_goal(robot):
-    print("drive_to_goal")
-    robot.behavior.drive_straight(distance_mm(-150), speed_mmps(100))
-    print("I got the ball from my opponent.")
-    x = robot.goal_pose.position.x-robot.pose.position.x
-    y = robot.pose.position.y
-    print("x:", x)
-    print("y:", y)
-    if y > 0:
-        robot.behavior.turn_in_place(degrees(-90), is_absolute=True, speed=degrees(45))
-        robot.behavior.drive_straight(distance_mm(y), speed_mmps(50))
-    else:
-        robot.behavior.turn_in_place(degrees(90), is_absolute=True, speed=degrees(45))
-        robot.behavior.drive_straight(distance_mm(-y), speed_mmps(50))
-    robot.behavior.turn_in_place(degrees(0), is_absolute=True, speed=degrees(45))
-    robot.behavior.drive_straight(distance_mm(x), speed_mmps(50))
-    print("Goal!")
+def drive_to_goal(robot, x, y):
+    
+    while robot.drivegoal:
+        x = robot.goal_pose.position.x-robot.pose.position.x
+        y = robot.pose.position.y
+        if x<50 and abs(y)<50: 
+            print("Goal")
+            robot.disconnect()
+            sys.exit()
+            break
+    robot.motors.stop_all_motors()
+    return
+
     
 def map(robot):
 	map_height=160*3
@@ -190,7 +172,7 @@ def initialize():
 	robot.enable_custom_object_detection=True
 	robot.world.define_custom_wall(anki_vector.objects.CustomObjectTypes.CustomType00, anki_vector.objects.CustomObjectMarkers.Triangles5, width_mm=200.0, height_mm=300.0, marker_width_mm=170.0, marker_height_mm=170.0)
 	robot.behavior.say_text("I'm ready!")
-	robot.ball_not_found=False
+	robot.ball_not_found=True
 	robot.drivegoal=False
 	return robot
 
