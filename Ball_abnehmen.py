@@ -22,8 +22,9 @@ def drive_for_search(robot):
     #überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
     while True:
         while robot.ball_not_found:
-            robot.motors.set_wheel_motors(-10,10)
+            robot.motors.set_wheel_motors(-15,15)
             time.sleep(randint(2,4))
+
             
 
 def getMiddleOfElement_area(img, bildRGB):
@@ -33,7 +34,7 @@ def getMiddleOfElement_area(img, bildRGB):
 		area =cv2.contourArea(cnt)
 		#WERTE ANPASSEN:
 		if area>20:
-			if area>3500:
+			if area>5000:
 				print("BALLL")
 				return True, 640/2, area, True #Ball gefunden und nah dran
 			print(area)
@@ -55,14 +56,16 @@ def change_direction(area, middle):
     d_adj = (abs(middle-320))/2
     d = middle-320
     print("d:", d)
-    a=20/area
+    a=math.sqrt(100/math.sqrt(area))
     g=60
     r = g
     l = (1-abs(d_adj)/320)*g
-    if d < 0: #Ball rechts
-        robot.motors.set_wheel_motors(l, r)
-    else:
-        robot.motors.set_wheel_motors(r, l)
+    # if d < 0: #Ball rechts
+    #     robot.motors.set_wheel_motors(l, r)
+    # else:
+    #     robot.motors.set_wheel_motors(r, l)
+    robot.motors.set_wheel_motors(80*d/320*a, -80*d/320*a)
+    robot.motors.set_wheel_motors(50,50)
     
 def search_ball(robot):
     print("searching ball")
@@ -74,9 +77,6 @@ def search_ball(robot):
         bildBlur = cv2.GaussianBlur(bildRGB, (3,3), 1)
         bildHSV = cv2.cvtColor(bildBlur, cv2.COLOR_BGR2HSV)
         imgHSV = bildHSV
-        lower = np.array([10, 66, 171])
-        upper = np.array([47, 186, 255])
-        #timwerte
         lower = np.array([0, 116, 148])
         upper = np.array([30, 229, 255])
         mask=cv2.inRange(imgHSV,lower,upper)
@@ -120,7 +120,7 @@ def search_ball(robot):
                 change_direction(area, middle)
         else: # not found
             frames=frames+1
-        if(frames>5):
+        if(frames>2):
             robot.drivegoal=False
             robot.ball_not_found=True
         if cv2.waitKey(1) & 0xFF == ord('q'):
