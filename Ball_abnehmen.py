@@ -53,13 +53,8 @@ def empty(a):
 
 def change_direction(area, middle):
 
-    d_adj = (abs(middle-320))/2
     d = middle-320
-    print("d:", d)
     a=math.sqrt(50/area)/2
-    g=60
-    r = g
-    l = (1-abs(d_adj)/320)*g
     robot.motors.set_wheel_motors(80*d/320, -80*d/320)
     robot.motors.set_wheel_motors(50*a+50,50*a+50)
 
