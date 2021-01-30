@@ -34,7 +34,7 @@ def getMiddleOfElement_area(img, bildRGB):
 		area =cv2.contourArea(cnt)
 		#WERTE ANPASSEN:
 		if area>20:
-			if area>5000:
+			if area>3000:
 				print("BALLL")
 				return True, 640/2, area, True #Ball gefunden und nah dran
 			print(area)
@@ -56,16 +56,14 @@ def change_direction(area, middle):
     d_adj = (abs(middle-320))/2
     d = middle-320
     print("d:", d)
-    a=math.sqrt(50/math.sqrt(area))
+    a=math.sqrt(50/area)/2
     g=60
     r = g
     l = (1-abs(d_adj)/320)*g
-    # if d < 0: #Ball rechts
-    #     robot.motors.set_wheel_motors(l, r)
-    # else:
-    #     robot.motors.set_wheel_motors(r, l)
-    robot.motors.set_wheel_motors(40*d/320*a, -40*d/320*a)
-    robot.motors.set_wheel_motors(80,80)
+    robot.motors.set_wheel_motors(80*d/320, -80*d/320)
+    robot.motors.set_wheel_motors(50*a+50,50*a+50)
+
+    
     
 def search_ball(robot):
     print("searching ball")
