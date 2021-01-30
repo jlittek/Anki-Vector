@@ -56,7 +56,7 @@ def change_direction(area, middle):
     d_adj = (abs(middle-320))/2
     d = middle-320
     print("d:", d)
-    a=math.sqrt(100/math.sqrt(area))
+    a=math.sqrt(50/math.sqrt(area))
     g=60
     r = g
     l = (1-abs(d_adj)/320)*g
@@ -64,8 +64,8 @@ def change_direction(area, middle):
     #     robot.motors.set_wheel_motors(l, r)
     # else:
     #     robot.motors.set_wheel_motors(r, l)
-    robot.motors.set_wheel_motors(80*d/320*a, -80*d/320*a)
-    robot.motors.set_wheel_motors(50,50)
+    robot.motors.set_wheel_motors(40*d/320*a, -40*d/320*a)
+    robot.motors.set_wheel_motors(80,80)
     
 def search_ball(robot):
     print("searching ball")
