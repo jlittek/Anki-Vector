@@ -25,14 +25,11 @@ def drive_for_search(robot):
             robot.motors.set_wheel_motors(-15,15)
             time.sleep(randint(2,4))
 
-            
-
 def getMiddleOfElement_area(img, bildRGB):
 	contours, hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	found_cont=False
 	for cnt in contours:
 		area =cv2.contourArea(cnt)
-		#WERTE ANPASSEN:
 		if area>20:
 			if area>3000:
 				print("BALLL")
@@ -48,18 +45,13 @@ def getMiddleOfElement_area(img, bildRGB):
 				pass	
 	return False, 640/2, None, False #Ball nicht gefunden
 
-def empty(a):
-	pass
-
 def change_direction(area, middle):
-
     d = middle-320
     a=math.sqrt(50/area)/2
-    robot.motors.set_wheel_motors(80*d/320, -80*d/320)
-    robot.motors.set_wheel_motors(50*a+50,50*a+50)
-
-    
-    
+    if abs(d)>5:
+        robot.motors.set_wheel_motors(80*d/320, -80*d/320)
+    robot.motors.set_wheel_motors(50*a+60,50*a+60)
+ 
 def search_ball(robot):
     print("searching ball")
     #counter, how many camera images without finding ball
@@ -93,8 +85,6 @@ def search_ball(robot):
                 print("I got the ball from my opponent.")
                 x = robot.goal_pose.position.x-robot.pose.position.x
                 y = robot.pose.position.y
-                print("x:", x)
-                print("y:", y)
                 distance_to_goal = math.sqrt(x*x+y*y)
                 angle_to_goal = np.rad2deg(np.arcsin(x/distance_to_goal))
                 print("alpha:", angle_to_goal)
@@ -107,8 +97,6 @@ def search_ball(robot):
                 #Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
                 drive_goal = threading.Thread(target=drive_to_goal, args=[robot, x, y])
                 drive_goal.start()
-            if area==None:  # Diesen Fall gibt es nicht mehr
-                pass
             elif robot.drivegoal==False:
                 change_direction(area, middle)
         else: # not found
@@ -122,19 +110,18 @@ def search_ball(robot):
             return False
 
 def drive_to_goal(robot, x, y):
-    
     while robot.drivegoal:
         x = robot.goal_pose.position.x-robot.pose.position.x
         y = robot.pose.position.y
         if x<50 and abs(y)<50: 
             print("Goal")
+            robot.drivegoal=False
             robot.disconnect()
             sys.exit()
             break
     robot.motors.stop_all_motors()
     return
-
-    
+  
 def map(robot):
 	map_height=160*3
 	map_widht=100*3
@@ -184,6 +171,3 @@ drive_around_thread.start()
 print("drive_around started")
 
 search_ball(robot)
-#Ausführen und die ersten ca. 30 Bilder abwarten ob schon ein Ball erkannt, 
-#wenn nicht, dann Ball suchen:
-#ball_not_found=True
