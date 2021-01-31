@@ -12,11 +12,9 @@ import math
 def handle_object_observed(robot, event_type, event):
     # This will be called whenever an EvtObjectObserved is dispatched -
     # whenever an Object comes into view.
-    #print(f"--------- Vector observed an object --------- \n{event.obj}")
     for obj in robot.world.visible_custom_objects:
-        print("Object observed")
-        robot.goal_pose = obj.pose
-        break # nach dem ersten direkt aufhören
+        if obj.custom_type == anki_vector.objects.CustomObjectTypes.CustomType00:
+            robot.goal_pose = obj.pose
 
 def drive_for_search(robot):
     #überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
@@ -31,7 +29,7 @@ def getMiddleOfElement_area(img, bildRGB):
 	for cnt in contours:
 		area =cv2.contourArea(cnt)
 		if area>20:
-			if area>3000:
+			if area>3500:
 				print("BALLL")
 				return True, 640/2, area, True #Ball gefunden und nah dran
 			print(area)
@@ -48,9 +46,8 @@ def getMiddleOfElement_area(img, bildRGB):
 def change_direction(area, middle):
     d = middle-320
     a=math.sqrt(50/area)/2
-    if abs(d)>5:
-        robot.motors.set_wheel_motors(80*d/320, -80*d/320)
-    robot.motors.set_wheel_motors(50*a+60,50*a+60)
+    robot.motors.set_wheel_motors(80*d/320, -80*d/320)
+    robot.motors.set_wheel_motors(60*a+60,60*a+60)
  
 def search_ball(robot):
     print("searching ball")
@@ -92,7 +89,7 @@ def search_ball(robot):
                     robot.behavior.turn_in_place(degrees(-0.8*(90-angle_to_goal)), is_absolute=True)
                 else:
                     robot.behavior.turn_in_place(degrees(0.8*(90-angle_to_goal)), is_absolute=True)
-                robot.motors.set_wheel_motors(80,80)
+                robot.motors.set_wheel_motors(100,100)
                 robot.drivegoal=True
                 #Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
                 drive_goal = threading.Thread(target=drive_to_goal, args=[robot, x, y])
@@ -101,7 +98,7 @@ def search_ball(robot):
                 change_direction(area, middle)
         else: # not found
             frames=frames+1
-        if(frames>2):
+        if(frames>1):
             robot.drivegoal=False
             robot.ball_not_found=True
         if cv2.waitKey(1) & 0xFF == ord('q'):
