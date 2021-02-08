@@ -86,9 +86,9 @@ def search_ball(robot):
                 angle_to_goal = np.rad2deg(np.arcsin(x/distance_to_goal))
                 print("alpha:", angle_to_goal)
                 if y > 0:
-                    robot.behavior.turn_in_place(degrees(-0.8*(90-angle_to_goal)), is_absolute=True)
+                    robot.behavior.turn_in_place(degrees(-(90-angle_to_goal)), is_absolute=True)
                 else:
-                    robot.behavior.turn_in_place(degrees(0.8*(90-angle_to_goal)), is_absolute=True)
+                    robot.behavior.turn_in_place(degrees((90-angle_to_goal)), is_absolute=True)
                 robot.motors.set_wheel_motors(100,100)
                 robot.drivegoal = True
                 #Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
