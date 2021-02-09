@@ -11,19 +11,21 @@ import math
 
 def handle_object_observed(robot, event_type, event):
     # This will be called whenever an EvtObjectObserved is dispatched -
-    # whenever an Object comes into view.
+    # whenever an Object comes into view. In case it is the CustomMarker 
+    # used to mark the goal the observed position of the marker becomes the new goal position.
     for obj in robot.world.visible_custom_objects:
         if obj.custom_type == anki_vector.objects.CustomObjectTypes.CustomType00:
             robot.goal_pose = obj.pose
 
 def drive_for_search(robot):
-    #überprüfe zwischen jedem neuen motors.set_wheel_motors Aufruf, ob der Ball schon gefunden wurde, das reicht, da wenn search_ball() schon den Ball gefunden hat, eh schon in die Richtige richtung fährt
+    # Turn in place to look for the ball:
     while True:
         while robot.ball_not_found:
             robot.motors.set_wheel_motors(-15,15)
             time.sleep(randint(2,4))
 
 def getMiddleOfElement_area(img, bildRGB):
+    # analyze the "white spots" found in serach_ball
 	contours, hierarchy = cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	found_cont=False
 	for cnt in contours:
@@ -31,19 +33,22 @@ def getMiddleOfElement_area(img, bildRGB):
 		if area > 20:
 			if area > 3500:
 				print("BALLL")
-				return True, 640/2, area, True #Ball gefunden und nah dran
+				return True, 640/2, area, True # Ball found and close to it
 			print(area)
 			try:
+                # Compute the middle of the area identified as the ball:
 				M = cv2.moments(cnt)
 				cX = int(M["m10"] / M["m00"])
 				cY = int(M["m01"] / M["m00"])
 				cv2.circle(bildRGB, (cX, cY), 7, (255, 255, 255), -1)
-				return True, cX, area, False #Ball gefunden, aber noch nicht nah genug
+				return True, cX, area, False # Ball found, but not close enough
 			except:
 				pass	
-	return False, 640/2, None, False #Ball nicht gefunden
+	return False, 640/2, None, False # Ball not found
 
 def change_direction(area, middle):
+    # Turn towards the ball in order to drive straight to it. 
+    # Turn faster if the ball is at border of the robots view, drive faster if the ball is far:
     d = middle - 320
     a = math.sqrt(50/area)/2
     robot.motors.set_wheel_motors(80*d/320, -80*d/320)
@@ -51,7 +56,7 @@ def change_direction(area, middle):
  
 def search_ball(robot):
     print("searching ball")
-    #counter, how many camera images without finding ball
+    # Counter how many camera images without finding the ball:
     frames = 0
     while True:
         img = np.array(robot.camera.latest_image.raw_image)
@@ -64,11 +69,12 @@ def search_ball(robot):
         mask = cv2.inRange(imgHSV,lower,upper)
         imgContour = img.copy()
         success, middle, area, goal = getMiddleOfElement_area(mask, bildRGB)
+        # Show the camera image and the computed results from above:
         cv2.namedWindow("Camera")
         cv2.imshow("Camera", bildRGB)
         cv2.namedWindow("Mask")
         cv2.imshow("Mask", mask)
-        #Ball found?:
+        # Ball found?:
         if success==True:
             robot.ball_not_found = False
             frames = 0
@@ -79,26 +85,27 @@ def search_ball(robot):
                 robot.motors.stop_all_motors()
                 print("drive_to_goal")
                 robot.behavior.drive_straight(distance_mm(-150), speed_mmps(100))
-                print("I got the ball from my opponent.")
+                print("I got the ball.")
                 x = robot.goal_pose.position.x-robot.pose.position.x
                 y = robot.pose.position.y
                 distance_to_goal = math.sqrt(x*x+y*y)
                 angle_to_goal = np.rad2deg(np.arcsin(x/distance_to_goal))
                 print("alpha:", angle_to_goal)
+                # Decide wether tu turn clockwise or counterclockwise:
                 if y > 0:
                     robot.behavior.turn_in_place(degrees(-(90-angle_to_goal)), is_absolute=True)
                 else:
                     robot.behavior.turn_in_place(degrees((90-angle_to_goal)), is_absolute=True)
+                # Drive to the goal and check if yet reached.
                 robot.motors.set_wheel_motors(100,100)
                 robot.drivegoal = True
-                #Thread, damit weiter gescannt werde kann, ob Ball auf dem Weg zum Tor verloren gegangen ist
                 drive_goal = threading.Thread(target=drive_to_goal, args=[robot, x, y])
                 drive_goal.start()
             elif robot.drivegoal==False:
                 change_direction(area, middle)
         else: # not found
             frames = frames + 1
-        if(frames > 1):
+        if(frames > 1): # Threshold to avoid false positives
             robot.drivegoal = False
             robot.ball_not_found = True
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -107,10 +114,11 @@ def search_ball(robot):
             return False
 
 def drive_to_goal(robot, x, y):
+    # Check wether the robot is already at the goal. If so, stop and exit:
     while robot.drivegoal:
         x = robot.goal_pose.position.x - robot.pose.position.x
         y = robot.pose.position.y
-        if x<50 and abs(y)<50: 
+        if x < 50 and abs(y) < 50: 
             print("Goal")
             robot.drivegoal = False
             robot.disconnect()
@@ -120,6 +128,7 @@ def drive_to_goal(robot, x, y):
     return
   
 def map(robot):
+    # Map to track the robot's path during the game:
 	map_height = 160*3
 	map_widht = 100*3
 	blank_image = np.zeros(shape=[map_height, map_widht, 3], dtype=np.uint8)
@@ -139,6 +148,7 @@ def map(robot):
 			sys.exit()
 
 def initialize():
+    # Initialize the robot and the game constraints:
 	robot = anki_vector.Robot()
 	robot.connect()
 	robot.camera.init_camera_feed()
@@ -153,16 +163,16 @@ def initialize():
 	robot.drivegoal = False
 	return robot
 
-#starting robot
+# Starting the robot and afterwards the game:
 robot = initialize()
 print("robot started")
 
-#starting map
+# Starting  the map:
 initmap = threading.Thread(target=map, args=[robot])
 initmap.start()
 print("Map started")
 
-#starting searching Thread
+# Starting searching Thread:
 drive_around_thread = threading.Thread(target=drive_for_search, args=[robot])
 drive_around_thread.start()
 print("drive_around started")
