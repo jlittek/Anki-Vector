@@ -1,4 +1,4 @@
-import cv2
+from cv2 import cv2
 import numpy as np  
 import anki_vector
 from anki_vector.util import distance_mm, speed_mmps, degrees

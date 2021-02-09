@@ -1,4 +1,4 @@
-import cv2
+from cv2 import cv2
 
 def getMiddleOfElement_area(img, bildRGB):
     # analyze the "white spots" found in serach_ball

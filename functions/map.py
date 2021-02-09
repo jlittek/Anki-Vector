@@ -1,7 +1,7 @@
 from cv2 import cv2
 import numpy as np
 import anki_vector
-
+import sys
 
 def map(robot):
     # Map to track the robot's path during the game:
