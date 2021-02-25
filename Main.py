@@ -10,22 +10,31 @@ from anki_vector.events import Events
 import math
 
 def handle_object_observed(robot, event_type, event):
-    # This will be called whenever an EvtObjectObserved is dispatched -
-    # whenever an Object comes into view. In case it is the CustomMarker 
-    # used to mark the goal the observed position of the marker becomes the new goal position.
+    """whenever the CustomMarker used for the goal comes into view the observed position becomes the new goal position
+    :param robot: instance of robot
+    :param event_type: default parameter
+    :param event: default parameter
+    """
     for obj in robot.world.visible_custom_objects:
         if obj.custom_type == anki_vector.objects.CustomObjectTypes.CustomType00:
             robot.goal_pose = obj.pose
 
 def drive_for_search(robot):
-    # Turn in place to look for the ball:
+    """Turn in place to look for the ball
+    :param robot: instance of the robot
+    """
     while True:
         while robot.ball_not_found:
             robot.motors.set_wheel_motors(-15,15)
             time.sleep(randint(2,4))
 
 def getMiddleOfElement_area(img, bildRGB):
-    # analyze the "white spots" found in serach_ball
+    """analyze the "white spots" found in serach_ball
+    :param img: picture for analyzing
+    :param bildRGB: image for plotting the result on the screen
+    :return: if middle of ball is found and it's size and vertical position
+    :rtype: bool, int, double, bool
+    """
 	contours, hierarchy = cv2.findContours(img,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	found_cont=False
 	for cnt in contours:
@@ -47,14 +56,20 @@ def getMiddleOfElement_area(img, bildRGB):
 	return False, 640/2, None, False # Ball not found
 
 def change_direction(area, middle):
-    # Turn towards the ball in order to drive straight to it. 
-    # Turn faster if the ball is at border of the robots view, drive faster if the ball is far:
+    """Turn towards the ball in order to drive straight to it. 
+    Turn faster if the ball is at the border of the robots view, drive faster if the ball is far away
+    :param area: size from ball on captured image
+    :param middle: horizontal position from ball
+    """
     d = middle - 320
     a = math.sqrt(50/area)/2
     robot.motors.set_wheel_motors(80*d/320, -80*d/320)
     robot.motors.set_wheel_motors(60*a+60, 60*a+60)
  
 def search_ball(robot):
+    """ search ball on captured picture
+    :param robot: instance of robot
+    """
     print("searching ball")
     # Counter how many camera images without finding the ball:
     frames = 0
@@ -114,7 +129,11 @@ def search_ball(robot):
             return False
 
 def drive_to_goal(robot, x, y):
-    # Check wether the robot is already at the goal. If so, stop and exit:
+    """Check wether the robot is already at the goal. If so, stop, otherwise drive to goal
+    :param robot: instance of robot
+    :param x: vertical distance between goal and robot
+    :param y: horizontal distance between goal and robot
+    """
     while robot.drivegoal:
         x = robot.goal_pose.position.x - robot.pose.position.x
         y = robot.pose.position.y
@@ -128,7 +147,9 @@ def drive_to_goal(robot, x, y):
     return
   
 def map(robot):
-    # Map to track the robot's path during the game:
+    """Map to track the robot's path during the game
+    :param robot: instance of robot
+    """
 	map_height = 160*3
 	map_widht = 100*3
 	blank_image = np.zeros(shape=[map_height, map_widht, 3], dtype=np.uint8)
@@ -148,7 +169,10 @@ def map(robot):
 			sys.exit()
 
 def initialize():
-    # Initialize the robot and the game constraints:
+    """Initialize the robot and the game constraints
+    :return: instance of Robot()
+    :rtype: robot
+    """
 	robot = anki_vector.Robot()
 	robot.connect()
 	robot.camera.init_camera_feed()
