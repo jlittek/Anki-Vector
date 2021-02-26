@@ -41,6 +41,7 @@ while True:
     upper = np.array([h_max, s_max, v_max])
     mask = cv2.inRange(imgHSV, lower, upper)   
 
+    # Alternative method to find the Ball: Approximation of the area with a Polygon.
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         peri = cv2.arcLength(cnt, True)
